@@ -2,157 +2,135 @@ package net.tpc.mcdownloader.gui;
 
 import java.awt.BorderLayout;
 import java.awt.Container;
-import java.awt.Dimension;
-import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
-import java.io.File;
 
+import javax.swing.BorderFactory;
 import javax.swing.JButton;
+import javax.swing.JComponent;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JProgressBar;
 import javax.swing.JTextField;
-import javax.swing.WindowConstants;
 
+import net.tpc.mcdownloader.IconLoader;
 import net.tpc.mcdownloader.MinecraftDownloader;
-import net.tpc.mcdownloader.listener.ProgressChangedListener;
-import net.tpc.mcdownloader.listener.StoppedListener;
+import net.tpc.mcdownloader.ProgressListener;
 
-public class DownloaderWindow extends JFrame implements ActionListener, WindowListener,
-		StoppedListener, ProgressChangedListener {
+public class DownloaderWindow extends JFrame implements ActionListener, WindowListener, ProgressListener {
 
 	private static final long	serialVersionUID	= 3428150718495407844L;
 
-	private MinecraftDownloader	dloader				= null;
+	private Container			layout;
 
-	private JProgressBar		progress			= null;
-	private JButton				startButton			= null;
+	private JProgressBar		progressBar;
+	private JButton				buttonStart;
 
-	private Container			outContainer		= null;
-	private JButton				chooseOutputButton	= null;
-	private JTextField			outputFolder		= null;
+	private Container			containerOutput;
+	private JButton				buttonOutput;
+	private JTextField			textFieldOutput;
 
-	private boolean				downloading;
+	private JButton				buttonExit;
 
 	public DownloaderWindow() {
 		super("Minecraft Downloader");
+		addWindowListener(this);
+		setIconImages(IconLoader.loadIcons("/net/tpc/mcdownloader/resources", "icon"));
 
-		this.dloader = new MinecraftDownloader();
-		this.dloader.addProgressListener(this);
-		this.dloader.addStoppedListener(this);
+		((JComponent) getContentPane()).setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
 
-		this.setLayout(new BorderLayout());
+		setLayout(new BorderLayout(5, 5));
 
-		this.outContainer = new Container();
-		this.outContainer.setLayout(new BorderLayout());
+		layout = new Container();
+		layout.setLayout(new BorderLayout(5, 5));
 
-		this.outputFolder = new JTextField();
-		this.outputFolder.setText(this.dloader.getOut().getAbsolutePath());
-		this.outputFolder.setEditable(false);
-		this.outContainer.add(this.outputFolder, BorderLayout.CENTER);
+		containerOutput = new Container();
+		containerOutput.setLayout(new BorderLayout(5, 5));
 
-		this.chooseOutputButton = new JButton();
-		this.chooseOutputButton.setText("Output folder ...");
-		this.chooseOutputButton.setActionCommand("chooseOut");
-		this.chooseOutputButton.addActionListener(this);
-		this.outContainer.add(this.chooseOutputButton, BorderLayout.LINE_END);
+		textFieldOutput = new JTextField();
+		textFieldOutput.setText(MinecraftDownloader.getOutputPath().getAbsolutePath());
+		textFieldOutput.setEditable(false);
+		containerOutput.add(textFieldOutput, BorderLayout.CENTER);
 
-		this.add(this.outContainer, BorderLayout.PAGE_START);
+		buttonOutput = new JButton();
+		buttonOutput.setText("Output folder ...");
+		buttonOutput.setActionCommand("ChooseOutput");
+		buttonOutput.addActionListener(this);
+		containerOutput.add(buttonOutput, BorderLayout.EAST);
 
-		this.startButton = new JButton();
-		this.startButton.setText("Start");
-		this.startButton.setActionCommand("Start");
-		this.startButton.addActionListener(this);
-		this.add(this.startButton, BorderLayout.CENTER);
+		layout.add(containerOutput, BorderLayout.NORTH);
 
-		this.progress = new JProgressBar();
-		this.add(this.progress, BorderLayout.AFTER_LAST_LINE);
+		buttonStart = new JButton();
+		buttonStart.setText("Start");
+		buttonStart.setActionCommand("Start");
+		buttonStart.addActionListener(this);
+		layout.add(buttonStart, BorderLayout.CENTER);
 
-		this.pack();
-		this.setSize(450, this.getSize().height);
-		this.setResizable(false);
+		progressBar = new JProgressBar();
+		layout.add(progressBar, BorderLayout.SOUTH);
 
-		Dimension screen = Toolkit.getDefaultToolkit().getScreenSize();
-		this.setBounds((screen.width - this.getWidth()) / 2,
-				(screen.height - this.getHeight()) / 2, this.getWidth(), this.getHeight());
+		add(layout, BorderLayout.CENTER);
 
-		this.addWindowListener(this);
-		this.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
+		buttonExit = new JButton("Exit");
+		buttonExit.setActionCommand("Exit");
+		buttonExit.addActionListener(this);
 
-		this.progress.setStringPainted(true);
-		this.progress.setMaximum(1000);
-		this.progress.setMinimum(0);
+		add(buttonExit, BorderLayout.EAST);
 
-		this.setVisible(true);
+		progressBar.setStringPainted(true);
+		progressBar.setMaximum(1000);
+		progressBar.setMinimum(0);
+
+		MinecraftDownloader.addProgressListener(this);
+
+		setResizable(false);
+		pack();
+		setSize(450, this.getSize().height);
+		setLocationRelativeTo(null);
+		setVisible(true);
 	}
 
 	@Override
 	public void actionPerformed(ActionEvent e) {
 		if (e.getActionCommand().equals("Start")) {
-			this.dloader.startDownloading();
-			this.downloading = true;
-			this.startButton.setText("Stop");
-			this.startButton.setActionCommand("Stop");
-			this.chooseOutputButton.setEnabled(false);
-			this.progress.setString(null);
-
-		} else if (e.getActionCommand().equals("Stop")) {
-			this.dloader.setError(true);
-			this.dloader.setException("Download stopped by user");
-			this.dloader.stopDownloading();
-			this.startButton.setText("Stopping ...");
-			this.startButton.setActionCommand("stopping");
-			this.progress.setValue(0);
-			this.progress.setString("Download stopped by user");
-
-		} else if (e.getActionCommand().equals("chooseOut")) {
+			if (!MinecraftDownloader.isDownloading()) {
+				MinecraftDownloader.startDownloading();
+				buttonStart.setText("Stop");
+				buttonOutput.setEnabled(false);
+				progressBar.setString(null);
+				progressBar.setValue(0);
+			} else {
+				if (MinecraftDownloader.isAborted()) {
+					return;
+				}
+				MinecraftDownloader.stopDownloading();
+				buttonStart.setText("Stopping ...");
+			}
+		} else if (e.getActionCommand().equals("ChooseOutput")) {
 			JFileChooser fchooser = new JFileChooser();
 			fchooser.setDialogTitle("Choose the output directory ...");
 			fchooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
 			fchooser.setAcceptAllFileFilterUsed(false);
 			if (fchooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
-				this.dloader.setOut(fchooser.getSelectedFile());
-				this.outputFolder.setText(fchooser.getSelectedFile().getAbsolutePath());
+				MinecraftDownloader.setOutputPath(fchooser.getSelectedFile());
+				textFieldOutput.setText(fchooser.getSelectedFile().getAbsolutePath());
 			}
+		} else if (e.getActionCommand().equals("Exit")) {
+			windowClosing(null);
 		}
 	}
 
 	@Override
 	public void onProgressChanged(String value, float f) {
-		if (f == -1.0f) {
-			this.progress.setString(value);
-			this.progress.setValue(0);
+		if (f < 0.0f) {
+			progressBar.setString(value);
+			progressBar.setValue(0);
 		} else {
-			this.progress.setString(value + " - " + (Math.floor(f * 1000.0f) / 10) + "%");
-			this.progress.setValue((int) (f * 1000.0f));
+			progressBar.setString(value + " - " + (Math.floor(f * 1000.0f) / 10) + "%");
+			progressBar.setValue((int) (f * 1000.0f));
 		}
-	}
-
-	@Override
-	public void onStopped() {
-		this.downloading = false;
-
-		this.progress.setValue(0);
-		if (this.dloader.hadError()) {
-			this.progress.setString(this.dloader.getException());
-		} else {
-			this.progress.setString("Finished!");
-		}
-
-		File out = this.dloader.getOut();
-
-		this.dloader = new MinecraftDownloader();
-		this.dloader.addProgressListener(this);
-		this.dloader.addStoppedListener(this);
-		this.dloader.setOut(out);
-
-		this.chooseOutputButton.setEnabled(true);
-		this.startButton.setText("Start");
-		this.startButton.setActionCommand("Start");
-
 	}
 
 	@Override
@@ -165,15 +143,15 @@ public class DownloaderWindow extends JFrame implements ActionListener, WindowLi
 
 	@Override
 	public void windowClosing(WindowEvent e) {
-		if (this.downloading == false) {
-			this.setVisible(false);
-			this.dispose();
+		if (!MinecraftDownloader.isDownloading()) {
+			setVisible(false);
+			dispose();
 		} else {
-			this.dloader.stopDownloading();
-			while (!this.dloader.isStopped()) {
+			MinecraftDownloader.stopDownloading();
+			while (!MinecraftDownloader.isStopped()) {
 			}
-			this.setVisible(false);
-			this.dispose();
+			setVisible(false);
+			dispose();
 		}
 	}
 
@@ -191,5 +169,27 @@ public class DownloaderWindow extends JFrame implements ActionListener, WindowLi
 
 	@Override
 	public void windowOpened(WindowEvent e) {
+	}
+
+	@Override
+	public void onStopped(StoppingReason reason) {
+		progressBar.setValue(0);
+		buttonOutput.setEnabled(true);
+		buttonStart.setText("Start");
+
+		switch (reason) {
+			case Aborted:
+				progressBar.setString("Stopped by user!");
+				break;
+			case Finished:
+				progressBar.setString("Finished!");
+				progressBar.setValue(1000);
+				break;
+			case Exception:
+				progressBar.setString(MinecraftDownloader.getLastException().getMessage());
+				break;
+			default:
+				break;
+		}
 	}
 }

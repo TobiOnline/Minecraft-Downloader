@@ -9,14 +9,13 @@ import java.util.Enumeration;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
-import net.tpc.mcdownloader.listener.ProgressChangedListener;
 
 public class JarExtractor {
 
 	private File								file					= null;
 	private JarFile								jarFile					= null;
 	private boolean								stop					= false;
-	private ArrayList<ProgressChangedListener>	progressChangedListener	= new ArrayList<ProgressChangedListener>();
+	private ArrayList<ProgressListener>	progressChangedListener	= new ArrayList<ProgressListener>();
 
 	public JarExtractor(File jarFile) {
 		this.file = jarFile;
@@ -26,7 +25,7 @@ public class JarExtractor {
 		}
 	}
 
-	public void addProgressListener(ProgressChangedListener listener) {
+	public void addProgressListener(ProgressListener listener) {
 		this.progressChangedListener.add(listener);
 	}
 
@@ -84,14 +83,14 @@ public class JarExtractor {
 	}
 
 	private void onProgressChanged(String value, float f) {
-		for (ProgressChangedListener listener : this.progressChangedListener) {
+		for (ProgressListener listener : this.progressChangedListener) {
 			if (listener != null) {
 				listener.onProgressChanged(value, f);
 			}
 		}
 	}
 
-	public void removeProgressListener(ProgressChangedListener listener) {
+	public void removeProgressListener(ProgressListener listener) {
 		this.progressChangedListener.remove(listener);
 	}
 
