@@ -141,7 +141,6 @@ public class MinecraftDownloader extends Thread {
 
 	@Override
 	public void run() {
-
 		for (Entry<String, String> file : mapFiles.entrySet()) {
 			try {
 				URL url = new URL("http://" + host + "/" + downloadPath + "/" + file.getKey());
@@ -151,7 +150,8 @@ public class MinecraftDownloader extends Thread {
 				onStopped(StoppingReason.Exception);
 			}
 			if (isAborted()) {
-				break;
+				onStopped(StoppingReason.Aborted);
+				return;
 			}
 		}
 
@@ -184,7 +184,8 @@ public class MinecraftDownloader extends Thread {
 				FileDownloader.download(url, new File(outputPath, "resources/" + resource.getName()));
 
 				if (isAborted()) {
-					break;
+					onStopped(StoppingReason.Aborted);
+					return;
 				}
 			}
 		} catch (MalformedURLException | NullPointerException e) {
